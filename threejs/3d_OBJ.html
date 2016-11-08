@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - OBJLoader + MTLLoader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background: url(img/product-bg-2.png) no-repeat center center;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			#text{
+				position: absolute;
+				bottom:30px;
+				left:40%;
+				color:#FF0000;
+			}
+			#container{
+				width:100%;
+				height: 100%;
+				margin: 0 auto;
+				cursor: pointer;
+				background-color:rgba(f,f,f,0);
+			}
+			button{
+				position: absolute;
+				width:80px;
+				height: 30px;
+				line-height: 30px;
+				border:none;
+				color:#FFFFFF;
+				background-color:#E2231A;
+				top:30px;
+				right:50px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<button onclick="clickBtn(this)">停止</button>
+		<script src="js/three.js"></script>
+		<script src="js/DDSLoader.js"></script>
+		<script src="js/MTLLoader.js"></script>
+		<script src="js/OBJLoader.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/Stats.js"></script>
+		<script src="js/controls/OrbitControls.js" type="text/javascript" charset="utf-8"></script>
+		<script>
+			var container, stats;
+			var camera, scene, renderer,orbit;
+			var mouseX = 0, mouseY = 0;
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+			var deg=Math.PI/180;
+			var timer;
+			var mesh;
+			var flag = 1;
+			init();
+			animate();
+			
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				container.setAttribute("id","container");
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 200000 );
+				camera.position.y = 0;
+				camera.position.z = 0;
+				camera.position.x = 200;
+
+				// scene
+
+				scene = new THREE.Scene();
+
+				var ambient = new THREE.AmbientLight( 0x444444 );
+				scene.add( ambient );
+				
+				
+				var light = new THREE.AmbientLight(0xffffff);    //环境光
+				scene.add(light);
+//				var directionalLight = new THREE.DirectionalLight( 0xffffff ,1);    //平行光
+//				directionalLight.position.set(3, 2, 1).normalize();
+//				scene.add( directionalLight );
+				
+				// model
+				var onProgress = function ( xhr ) {
+					if ( xhr.lengthComputable ) {
+						var percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+					}
+				};
+
+				var onError = function ( xhr ) { };
+
+				THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+
+				var mtlLoader = new THREE.MTLLoader();
+				mtlLoader.setPath( 'lib/' );
+				mtlLoader.load( 'RB-OptimusBoss.mtl', function( materials ) {
+					materials.preload();
+					var objLoader = new THREE.OBJLoader();
+					objLoader.setMaterials( materials );
+					objLoader.setPath( 'lib/' );
+					objLoader.load( 'RB-OptimusBoss.obj', function ( object ) {
+						mesh = object;
+						object.position.y = -10;
+						object.scale.set(0.2,0.2,0.2);
+						object.children[0].geometry.computeBoundingBox();
+						object.children[0].geometry.center();
+						rotateY(mesh);
+						scene.add( object );
+					}, onProgress, onError );
+
+				});
+				
+				orbit = new THREE.OrbitControls( camera, container );
+				orbit.addEventListener( 'change', render );
+				var target = new THREE.Vector3( 0, 1, 0 );
+				camera.lookAt( target );
+				orbit.target = target;
+				//renderer
+				renderer = new THREE.WebGLRenderer({
+					alpha:true   //允许场景背景色为透明
+				});
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor(0xffffff,0.3);    //渲染器背景色及透明度
+				container.appendChild( renderer.domElement );
+			}
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+			}
+
+			function render() {
+				camera.lookAt( scene.position );
+				renderer.render( scene, camera );
+			}
+			
+			function rotateY(object){
+				timer = setInterval(function(){
+					object.rotation.y += deg; 
+					if(object.rotation.y >= 2*Math.PI){
+						object.rotation.y -= 2*Math.PI;
+					}
+				},30);
+				renderer.render( scene, camera );
+			}
+			
+			function clickBtn(that){
+				if(flag == 1){
+					clearInterval(timer);
+					flag = 0;
+					that.innerHTML = "旋转";
+				}else{
+					rotateY(mesh);
+					flag = 1;
+					that.innerHTML = "停止";
+				}
+			}
+		</script>
+
+	</body>
+</html>
+
