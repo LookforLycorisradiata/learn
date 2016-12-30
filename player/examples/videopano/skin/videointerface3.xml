@@ -24,7 +24,7 @@
 	               design_thumbborder_bgborder="4 0xFFFFFF 1.0"
 	               design_thumbborder_padding="2"
 	               design_thumbborder_bgroundedge="5"
-	               design_text_css="color:#FFFFFF; font-family:Arial; font-weight:bold;"
+	               design_text_css="color:#FFFFFF; font-family:Arial; font-weight:bold;display:none;"
 	               design_text_shadow="1"
 	               />
 	
@@ -446,6 +446,7 @@
 		<item name="kr" caption="小可乐-360直播"     />
 		<item name="nv" caption="正常视角"        onclick="skin_view_normal();"        />
 		<item name="fv" caption="鱼眼视角"       onclick="skin_view_fisheye();"       />
+		<item name="pv" caption="球面视角"       onclick="skin_view_pannini();"       />
 		<item name="lp" caption="小行星视角" onclick="skin_view_littleplanet();"  />
 	</contextmenu>
 
