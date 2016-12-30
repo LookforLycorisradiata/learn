@@ -561,6 +561,7 @@
 		<item name="kr" caption="全景视频"     />
 		<item name="nv" caption="正常视角"        onclick="skin_view_normal();"        />
 		<item name="fv" caption="鱼眼视角"       onclick="skin_view_fisheye();"       />
+		<item name="pv" caption="球面视角"       onclick="skin_view_pannini();"       />
 		<item name="lp" caption="小行星视角" onclick="skin_view_littleplanet();"  />
 	</contextmenu>
 
