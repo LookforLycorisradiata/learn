@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - OBJLoader + MTLLoader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+		<meta http-equiv="x-ua-compatible" content="IE=edge" />
+		<link rel="stylesheet" href="../bootstrap/bootstrap.css">
+		<style>
+			body {
+				font-family: Monospace;
+				/*background: url(img/product-bg-2.png) no-repeat center center;*/
+				/*background-size: cover;*/
+				background-color:#3c3f41;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			#text{
+				position: absolute;
+				bottom:30px;
+				left:40%;
+				color:#FF0000;
+			}
+			#container{
+				width:100%;
+				height: 100%;
+				display:none;
+				margin: 0 auto;
+				cursor: pointer;
+				/*background-color:rgba(f,f,f,0);*/
+			}
+			#stop-btn{
+				position: absolute;
+				display: none;
+				width:80px;
+				height: 30px;
+				line-height: 30px;
+				border:none;
+				color:#FFFFFF;
+				background-color:#E2231A;
+				top:30px;
+				right:50px;
+			}
+			#progress-box{
+				position:absolute;
+				width:50%;
+				top:50%;
+				left:50%;
+				overflow: visible;
+				-webkit-transform: translate(-50%,-50%);
+				-moz-transform: translate(-50%,-50%);
+				-ms-transform: translate(-50%,-50%);
+				-o-transform: translate(-50%,-50%);
+				transform: translate(-50%,-50%);
+			}
+		</style>
+	</head>
+
+	<body>
+		<button id="stop-btn" onclick="clickBtn(this)">停止</button>
+		<div id="progress-box" class="progress">
+			<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+				0%
+			</div>
+
+		</div>
+		<div id="container"></div>
+		<script src="../bootstrap/jquery-1.11.0.js"></script>
+		<script src="../bootstrap/bootstrap.min.js"></script>
+		<script src="js/three.js"></script>
+		<script src="js/DDSLoader.js"></script>
+		<script src="js/MTLLoader.js"></script>
+		<script src="js/OBJLoader.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/Stats.js"></script>
+		<script src="js/controls/OrbitControls.js" type="text/javascript" charset="utf-8"></script>
+		<script>
+
+			var objModel = new ObjModel({
+				eleId:"container",    //DOM元素ID
+				url:"lib/",   //文件路径
+				mtlFileName:"RB-OptimusBoss.mtl",  //mtl文件名
+				objFileName:"RB-OptimusBoss.obj",  //obj文件名
+				autorotation:false,       //设置自动旋转 ,默认为true
+				scale:0.2				//模型初始缩放比例 ,默认为1
+
+			})
+
+			function ObjModel(objModel){
+				var container, stats;
+				var camera, scene, renderer,orbit;
+				var mouseX = 0, mouseY = 0;
+				var windowHalfX = window.innerWidth / 2;
+				var windowHalfY = window.innerHeight / 2;
+				var deg=Math.PI/180;
+				var timer;
+				var mesh;
+				var flag = 1;
+				var that = this;
+
+				this.eleId = objModel.eleId;
+				this.url = objModel.url;
+				this.mtlFileName = objModel.mtlFileName;
+				this.objFileName = objModel.objFileName;
+				this.autorotation = objModel.autorotation||true;
+				this.scale = objModel.scale||1;
+
+				this.init = function() {
+
+					container = document.getElementById(this.eleId);
+
+					camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 200000 );
+					camera.position.y = 0;
+					camera.position.z = 0;
+					camera.position.x = 200;
+
+					// scene
+					scene = new THREE.Scene();
+
+					var ambient = new THREE.AmbientLight( 0x444444 );
+					scene.add( ambient );
+
+
+					var light = new THREE.AmbientLight(0xffffff);    //环境光
+					scene.add(light);
+					// model
+					var onProgress = function ( xhr ) {
+						if ( xhr.lengthComputable ) {
+							var percentComplete = xhr.loaded / xhr.total * 100;
+							console.log( Math.round(percentComplete, 2) + '% downloaded' );
+							var t = Math.round(percentComplete, 2);
+							if(t < 100){
+								$(".progress-bar").html(t+'%');
+								$(".progress-bar").width(t+'%');
+								$(".progress-bar").attr("aria-valuenow",t);
+							}else{
+								$(".progress-bar").html('100%');
+								$(".progress-bar").width('100%');
+								$(".progress-bar").attr("aria-valuenow",'100');
+								setTimeout(function(){
+									$("#progress-box").css({"display":"none"});
+									if(this.autorotation){
+										$("#stop-btn").css({"display":"block"});
+									}
+									$("#"+that.eleId).css({"display":"block"});
+								},1000)
+
+							}
+
+						}
+					};
+
+					var onError = function ( xhr ) { };
+
+					THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+
+					var mtlLoader = new THREE.MTLLoader();
+					mtlLoader.setPath( that.url );
+					mtlLoader.load( that.mtlFileName, function( materials ) {
+						materials.preload();
+						var objLoader = new THREE.OBJLoader();
+						objLoader.setMaterials( materials );
+						objLoader.setPath( that.url );
+						objLoader.load( that.objFileName, function ( object ) {
+							mesh = object;
+							object.position.y = -10;
+							object.scale.set(that.scale,that.scale,that.scale);
+							object.children[0].geometry.computeBoundingBox();
+							object.children[0].geometry.center();
+							if(that.autorotation){
+								rotateY(mesh);
+							}
+							scene.add( object );
+						}, onProgress, onError );
+
+					});
+
+					orbit = new THREE.OrbitControls( camera, container );
+					orbit.addEventListener( 'change', render );
+					var target = new THREE.Vector3( 0, 1, 0 );
+					camera.lookAt( target );
+					orbit.target = target;
+					//renderer
+					renderer = new THREE.WebGLRenderer({
+						alpha:true   //允许场景背景色为透明
+					});
+					renderer.setPixelRatio( window.devicePixelRatio );
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					renderer.setClearColor(0xffffff,0.3);    //渲染器背景色及透明度
+					container.appendChild( renderer.domElement );
+				}
+				function animate() {
+					requestAnimationFrame( animate );
+					render();
+				}
+
+				function render() {
+					camera.lookAt( scene.position );
+					renderer.render( scene, camera );
+				}
+
+				function rotateY(object){
+					timer = setInterval(function(){
+						object.rotation.y += deg;
+						if(object.rotation.y >= 2*Math.PI){
+							object.rotation.y -= 2*Math.PI;
+						}
+					},30);
+					renderer.render( scene, camera );
+				}
+				function clickBtn(that){
+					if(flag == 1){
+						clearInterval(timer);
+						flag = 0;
+						that.innerHTML = "旋转";
+					}else{
+						rotateY(mesh);
+						flag = 1;
+						that.innerHTML = "停止";
+					}
+				}
+
+				this.init();
+				animate();
+			}
+
+		</script>
+
+	</body>
+</html>
+
